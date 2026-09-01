@@ -1,0 +1,5 @@
+*.log
+*.pdf
+*.3dm
+*.rhl
+prefix/

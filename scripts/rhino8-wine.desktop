@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Rhinoceros 8 (Wine)
+Exec=/home/VOTRE_LOGIN/.local/bin/rhino8.sh %f
+Icon=/home/VOTRE_LOGIN/.local/share/icons/rhino8.ico
+Terminal=false
+Categories=Graphics;3DGraphics;
+MimeType=application/x-wine-extension-3dm;
+StartupWMClass=rhino.exe
