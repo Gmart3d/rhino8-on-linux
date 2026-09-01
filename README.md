@@ -12,6 +12,7 @@ machines disagree, both answers are documented rather than averaged.
 
 | | |
 |---|---|
+| **[`scripts/install-rhino8.sh`](scripts/install-rhino8.sh)** | Automated installer. You download Rhino from rhino3d.com, it does the rest — verifying every step and stopping with a plain explanation if anything is wrong. Safe to re-run. |
 | **[Install guide](docs/install-guide.md)** | Eleven steps, written for someone who does not use the command line. About 1 h 30. |
 | **[Technical notes](docs/technical-notes.md)** | The full procedure with verification commands, 22 traps, measurements, limits and open questions. |
 | Français | [Guide d'installation](docs/install-guide.fr.md) · [Notes techniques](docs/technical-notes.fr.md) |
