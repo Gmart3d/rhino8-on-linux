@@ -84,10 +84,10 @@ The previous step quietly switched Rhino's space to **Windows 7**. If you do not
 
 ```bash
 wine winecfg /v win10
-wine winecfg /v
+wine reg query "HKLM\Software\Microsoft\Windows NT\CurrentVersion" /v CurrentBuild
 ```
 
-> **What you should see** — The last line must answer exactly **win10**. If it says anything else, run the first command again.
+> **What you should see** — The last line must show **19045**. That is the Windows 10 build number; 7601 would mean Windows 7. If you see 7601, run the first command again.
 
 ## 7. Install the browser component
 
@@ -97,10 +97,10 @@ Rhino shows its licensing window through a Microsoft browser component. Without 
 
 ```bash
 winetricks -q webview2
-wine winecfg /v
+wine reg query "HKLM\Software\Microsoft\Windows NT\CurrentVersion" /v CurrentBuild
 ```
 
-> **What you should see** — You get the prompt back, and the last line still answers **win10**.
+> **What you should see** — You get the prompt back, and the last line still shows **19045**.
 
 ## 8. Download Rhino
 

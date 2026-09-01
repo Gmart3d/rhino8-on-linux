@@ -61,35 +61,33 @@ trap 'on_err "$LINENO" "${BASH_LINENO[0]:-0}" "$BASH_COMMAND"' ERR
 
 run() { printf '\n$ %s\n' "$*" >>"$LOG"; "$@" >>"$LOG" 2>&1; }
 
-# ---------------------------------------------- garde-fou anti-blocage Edge
-# MicrosoftEdgeUpdate.exe, installe avec WebView2, ne se termine jamais et
-# bloque winetricks et wineserver -w indefiniment. On le tue periodiquement.
-# La sortie du sous-shell DOIT etre redirigee, sinon une substitution de
-# commande attendrait un EOF qui ne viendrait jamais.
-EDGE_PID=""
-edge_start() {
-  [ -n "$EDGE_PID" ] && return 0
-  ( while sleep 20; do pkill -u "$(id -u)" -f 'MicrosoftEdgeUpdat[e]' >/dev/null 2>&1 || true; done ) \
-    >/dev/null 2>&1 &
-  EDGE_PID=$!
-}
-edge_stop() {
-  [ -n "$EDGE_PID" ] || return 0
-  pkill -P "$EDGE_PID" >/dev/null 2>&1 || true
-  kill "$EDGE_PID" >/dev/null 2>&1 || true
-  EDGE_PID=""
-}
-trap 'edge_stop' EXIT INT TERM HUP
+# ---------------------------------------------- MicrosoftEdgeUpdate
+# Installe avec WebView2, MicrosoftEdgeUpdate.exe ne se termine jamais et
+# bloque « wineserver -w » indefiniment. On le tue AVANT chaque attente.
+# Surtout PAS de facon periodique : il est indispensable PENDANT l'installation
+# de WebView2 (c'est lui qui telecharge et installe le composant), et le tuer
+# en cours de route fait echouer l'installation avec le statut 1.
+kill_edge_update() { pkill -u "$(id -u)" -f 'MicrosoftEdgeUpdat[e]' >/dev/null 2>&1 || true; }
 
 # wineserver -w est muet et sans limite de temps : on le borne.
 wine_wait() {
-  pkill -u "$(id -u)" -f 'MicrosoftEdgeUpdat[e]' >/dev/null 2>&1 || true
+  kill_edge_update
   if ! timeout 240 wineserver -w >>"$LOG" 2>&1; then
     warn "Des processus Windows sont restés bloqués ; on les arrête."
     wineserver -k >>"$LOG" 2>&1 || true
     sleep 2
   fi
 }
+
+# « wine winecfg /v » n'affiche RIEN (verifie sur Wine 11.16) : on lit le
+# registre, seule source fiable. CurrentBuild vaut 19045 en Windows 10 et
+# 7601 en Windows 7. Ne pas se fier a CurrentVersion, qui vaut 6.3 dans les
+# deux cas — c'est aussi le cas du vrai Windows 10.
+prefix_build() {
+  timeout 120 wine reg query "HKLM\\Software\\Microsoft\\Windows NT\\CurrentVersion" \
+    /v CurrentBuild 2>>"$LOG" | tr -d '\r' | awk '/CurrentBuild/{print $NF}'
+}
+is_win10() { [ "$(prefix_build)" = "19045" ]; }
 
 # ------------------------------------------------------------------ arguments
 while [ $# -gt 0 ]; do
@@ -310,8 +308,6 @@ grep -qa '#arch=win64' "$PREFIX/system.reg" || die \
   "Relancez avec un dossier neuf : $0 --prefix ~/rhino8"
 ok "Espace 64 bits : $PREFIX"
 
-edge_start   # actif jusqu'a la fin du script
-
 # ============================================================ 6. composants
 step "Installation des composants Windows (30 à 45 minutes)"
 
@@ -336,17 +332,17 @@ info "winetricks laisse l'espace en Windows 7 sans le restaurer ;"
 info "sans cette correction, Rhino échouerait plus loin sans message."
 run wine winecfg /v win10
 wine_wait
-VER=$(wine winecfg /v 2>>"$LOG" | tr -d '\r\n ' || true)
-[ "$VER" = "win10" ] || die "L'espace Wine est resté en « ${VER:-inconnu} » au lieu de win10." \
+BUILD=$(prefix_build)
+[ "$BUILD" = "19045" ] || die "L'espace Wine annonce la version Windows « ${BUILD:-inconnue} » au lieu de 19045 (Windows 10)." \
   "Ouvrez un terminal et lancez : WINEPREFIX='$PREFIX' wine winecfg /v win10"
-ok "Mode Windows 10 confirmé"
+ok "Mode Windows 10 confirmé (build $BUILD)"
 
 # ============================================================ 8. WebView2
 step "Installation du composant navigateur (5 à 15 minutes)"
 
 webview2_ok() {
   find "$PREFIX/drive_c/Program Files (x86)/Microsoft/EdgeWebView/Application" \
-       -type f -iname 'msedgewebview2.exe' -size +10M -print -quit 2>/dev/null | grep -q .
+       -type f -iname 'msedgewebview2.exe' -size +1M -print -quit 2>/dev/null | grep -q .
 }
 if webview2_ok; then
   skip "WebView2 déjà installé"
@@ -356,14 +352,13 @@ else
   run "$WT" -q webview2 || true
   wine_wait
   webview2_ok || die "WebView2 ne s'est pas installé correctement." \
-    "Relancez le script ; si l'échec persiste, consultez le journal."
+    "Relancez le script : cette étape aboutit souvent au second essai. Si l'échec persiste, videz le cache ~/.cache/winetricks/webview2 puis réessayez."
 fi
 # webview2 peut rebasculer la version globale de Windows : on revérifie.
-VER=$(wine winecfg /v 2>>"$LOG" | tr -d '\r\n ' || true)
-if [ "$VER" != "win10" ]; then
+if ! is_win10; then
+  warn "WebView2 a modifié la version de Windows : on la remet."
   run wine winecfg /v win10; wine_wait
-  VER=$(wine winecfg /v 2>>"$LOG" | tr -d '\r\n ' || true)
-  [ "$VER" = "win10" ] || die "Impossible de maintenir le mode Windows 10 (« $VER »)." \
+  is_win10 || die "Impossible de maintenir le mode Windows 10 (build « $(prefix_build) »)." \
     "Lancez : WINEPREFIX='$PREFIX' wine winecfg /v win10"
 fi
 ok "WebView2 installé, mode Windows 10 maintenu"
@@ -415,7 +410,7 @@ else
   fi
 
   [ -f "$RHINO_EXE" ] || die "Rhino ne s'est pas installé." \
-    "La cause la plus fréquente est un espace resté en Windows 7. Vérifiez avec : WINEPREFIX='$PREFIX' wine winecfg /v"
+    "La cause la plus fréquente est un espace resté en Windows 7. Vérifiez avec : WINEPREFIX='$PREFIX' wine reg query 'HKLM\\Software\\Microsoft\\Windows NT\\CurrentVersion' /v CurrentBuild — la valeur doit être 19045."
   : >"$STAMP"
 fi
 ok "Rhino installé"
@@ -506,7 +501,7 @@ else
 fi
 
 # ============================================================ fin
-edge_stop
+kill_edge_update
 cat <<EOF
 
 $CB${CG}Installation terminée.$CN

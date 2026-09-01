@@ -126,27 +126,26 @@ cat "$WINEPREFIX/winetricks.log"
 
 ```bash
 export WINEPREFIX="$HOME/.local/share/wineprefixes/rhino8"
-wine winecfg /v
 wine winecfg /v win10
 wine reg query "HKLM\\Software\\Microsoft\\Windows NT\\CurrentVersion" /v CurrentBuild
 ```
 
 **Le piège central de toute la procédure.** Dans winetricks, `load_dotnet48()` se termine par `w_set_winver win7` *sans restauration* — contrairement à `load_dotnet40()` qui encadre son changement. Le préfixe reste donc en Windows 7, et l'installation de Rhino échoue ensuite silencieusement. `wine winecfg /v` sans argument affiche la version courante : c'est le contrôle ; avec `win10`, c'est la correction.
 
-> **Vérifier** — `wine winecfg /v` doit répondre `win10` et `CurrentBuild` valoir 19045. **Attention** : `CurrentVersion` vaut 6.3 même en mode Windows 10 — ce n'est pas un échec.
+> **Vérifier** — **Vérifié à l'exécution :** `wine winecfg /v` sans argument n'affiche *rien* sur Wine 11.16 — ne l'utilisez pas comme contrôle. La seule source fiable est le registre : `CurrentBuild` doit valoir **19045** (Windows 10) et non 7601 (Windows 7). **Attention** : `CurrentVersion` vaut 6.3 dans les deux cas — le vrai Windows 10 aussi.
 
 ### 10. Installer WebView2 avant l'installeur Rhino
 
 ```bash
 export WINEPREFIX="$HOME/.local/share/wineprefixes/rhino8"
 winetricks -q webview2
-wine winecfg /v
+wine reg query "HKLM\\Software\\Microsoft\\Windows NT\\CurrentVersion" /v CurrentBuild
 ls "$WINEPREFIX/drive_c/Program Files (x86)/Microsoft/EdgeWebView/Application/"
 ```
 
 Nos notes d'origine plaçaient WebView2 *après* Rhino : c'est une erreur d'ordre. Le journal de l'installeur montre l'arrêt exactement sur `Redist_MSWebView2_Standalone` (erreur `0x80040902`), avant même les runtimes .NET. WebView2 sert aussi à la fenêtre de licence, qui reste blanche sans lui. Effet de bord normal : winetricks pose une surcharge *par application* `msedgewebview2.exe = win7` — ne la supprimez pas, elle ne change pas la version globale.
 
-> **Vérifier** — Le dossier de version existe, et `wine winecfg /v` répond toujours `win10`.
+> **Vérifier** — Le dossier de version existe, et `CurrentBuild` vaut toujours 19045. Le binaire `msedgewebview2.exe` pèse environ 4,6 Mo — ne testez pas la seule présence du dossier, qui apparaît dès le début de l'extraction.
 
 ### 11. Obtenir l'installeur officiel
 
@@ -360,6 +359,7 @@ Les deux installations divergent sur cinq points, et fusionner leurs recettes pr
 | Un script d'automatisation reste bloqué à l'ouverture d'un fichier. | Le dialogue modal « Missing Fonts » s'ouvre si le document référence des polices absentes. | Cocher « Don't show again », et installer les polices manquantes. |
 | `wine Rhino.exe /runscript="..."` ne fait rien. | Wine reconstruit la ligne de commande en enveloppant l'argument entier de guillemets, forme que Rhino ne reconnaît pas. | Passer par un `.bat` lancé avec `wine cmd /c`. |
 | `-_RunScript C:\fichier.rvb` renvoie une erreur de syntaxe. | `RunScript` compile son argument comme du code ; c'est le deux-points du chemin qui casse. | Utiliser `-_LoadScript` pour exécuter un fichier. |
+| `wine winecfg /v` n'affiche rien et on croit l'étape ratée. | Cette commande n'affiche pas la version courante sur Wine 11.16 — vérifié à l'exécution sur deux préfixes. | Lire le registre : `CurrentBuild` doit valoir 19045. |
 | Le Package Manager fait planter Rhino instantanément. | Plantage silencieux dans les processus WebView2 embarqués. | Utiliser la ligne de commande Yak, pleinement fonctionnelle. |
 
 ## Ce qui ne fonctionne pas
@@ -383,5 +383,5 @@ Les deux installations divergent sur cinq points, et fusionner leurs recettes pr
 - Une seule version de Rhino, 8.34. Une autre version changera les identifiants du cache et peut-être le comportement.
 - Licence : seule l'évaluation Cloud Zoo a été essayée. Ni licence autonome, ni Zoo local.
 - **La cause du problème de rafraîchissement n'est pas établie.** Les remèdes proposés sont des palliatifs dont on constate l'effet.
-- L'étape 12 n'a jamais été exécutée dans l'ordre publié : sur la machine Mint, l'installeur a été lancé avant les étapes 9 et 10, et il a échoué. Nous prédisons qu'il réussit dans le bon ordre — c'est ce qui s'est passé sur Ubuntu — mais nous ne l'avons pas rejoué.
+- L'ordre publié a été **rejoué et validé** le 2026-09-01 sur un préfixe neuf de la machine Mint : WebView2 puis Windows 10 puis l'installeur officiel, qui aboutit seul sans recours à l'installation manuelle. Cette réserve, présente dans les versions précédentes de ce document, est levée.
 

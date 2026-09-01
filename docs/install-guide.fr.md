@@ -84,10 +84,10 @@ L'étape précédente a discrètement basculé l'espace de Rhino en **Windows 7*
 
 ```bash
 wine winecfg /v win10
-wine winecfg /v
+wine reg query "HKLM\Software\Microsoft\Windows NT\CurrentVersion" /v CurrentBuild
 ```
 
-> **Ce que vous devez voir** — La dernière ligne doit répondre exactement **win10**. Si elle répond autre chose, relancez la première commande.
+> **Ce que vous devez voir** — La dernière ligne doit afficher **19045**. C'est le numéro de Windows 10 ; 7601 signifierait Windows 7. Si vous voyez 7601, relancez la première commande.
 
 ## 7. Installer le composant navigateur
 
@@ -97,10 +97,10 @@ Rhino affiche sa fenêtre de licence à l'aide d'un composant navigateur de Micr
 
 ```bash
 winetricks -q webview2
-wine winecfg /v
+wine reg query "HKLM\Software\Microsoft\Windows NT\CurrentVersion" /v CurrentBuild
 ```
 
-> **Ce que vous devez voir** — La main revient, et la dernière ligne répond toujours **win10**.
+> **Ce que vous devez voir** — La main revient, et la dernière ligne affiche toujours **19045**.
 
 ## 8. Télécharger Rhino
 
