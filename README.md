@@ -114,9 +114,24 @@ An experimental Wine patch addressing this is in [`patches/`](patches/) — see 
 
 ```
 docs/       install guide and technical notes, English and French
-scripts/    launcher, menu entry, cleanup, Rhino redraw workaround
+scripts/    the installer, plus the files it uses
 patches/    experimental Wine patch for the viewport refresh race
 ```
+
+### What is in `scripts/`
+
+| File | Used by the installer? |
+|---|---|
+| `install-rhino8.sh` | — this *is* the installer |
+| `redraw_fix.py` | **yes**, copied into the prefix as `C:\redraw_fix.py` |
+| `cleanup.sh` | **yes**, installed as `~/.local/bin/rhino8-cleanup.sh` |
+| `rhino8.sh` | no — template for manual installation only |
+| `rhino8-wine.desktop` | no — template for manual installation only |
+
+The installer **generates** its own launcher and menu entry rather than copying
+the two templates: its versions add Unix-path conversion, NVIDIA Optimus
+detection and launch logging. The templates are there for people following the
+manual procedure in `docs/`, and are labelled as such.
 
 ## Contributing
 

@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# TEMPLATE FOR MANUAL INSTALLATION ONLY.
+# install-rhino8.sh does NOT use this file: it generates its own version,
+# with Unix-path conversion, NVIDIA Optimus detection and launch logging.
+# Use this only if you followed the manual guide in docs/.
 # Launches Rhino 8 under Wine.
 set -u
 export WINEPREFIX="${WINEPREFIX:-$HOME/.local/share/wineprefixes/rhino8}"

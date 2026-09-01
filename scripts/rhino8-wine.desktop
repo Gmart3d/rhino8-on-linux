@@ -1,3 +1,7 @@
+# TEMPLATE FOR MANUAL INSTALLATION ONLY.
+# install-rhino8.sh does NOT use this file: it generates its own version,
+# with Unix-path conversion, NVIDIA Optimus detection and launch logging.
+# Use this only if you followed the manual guide in docs/.
 [Desktop Entry]
 Type=Application
 Name=Rhinoceros 8 (Wine)
