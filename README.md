@@ -8,7 +8,48 @@ of what still does not work.
 Everything here was verified command by command on two machines. Where the two
 machines disagree, both answers are documented rather than averaged.
 
-## Start here
+## Quick start — the automated installer
+
+**1.** Download Rhino 8 for Windows from [rhino3d.com](https://www.rhino3d.com/download/)
+(a McNeel account is required; a free 90-day evaluation is offered). Leave the
+`.exe` in your Downloads folder — the script finds it on its own.
+
+**2.** Get this repository and run the installer:
+
+```bash
+git clone https://github.com/Gmart3d/rhino8-on-linux.git
+cd rhino8-on-linux/scripts
+./install-rhino8.sh
+```
+
+It shows what it is about to do, asks for confirmation, then works through eleven
+steps — verifying each one and stopping with a plain explanation if anything is
+wrong. Re-running it is safe: completed steps are detected and skipped.
+
+Clone the repository rather than downloading the single file: the script looks for
+`redraw_fix.py` next to itself for the optional display fix. On its own it still
+works, it just skips that last step.
+
+**Allow about 1 h 30**, most of it waiting with nothing to do, and keep a stable
+internet connection throughout — the official Rhino executable is a downloader.
+Microsoft installer windows will appear and close by themselves during steps 6
+and 8; leave them alone.
+
+### Options
+
+| | |
+|---|---|
+| `--prefix PATH` | install into another Wine prefix (default `~/.local/share/wineprefixes/rhino8`) |
+| `--no-nvidia` | skip the NVIDIA Optimus render offload, if detection gets it wrong |
+| `-y`, `--yes` | no confirmation prompt — useful for automation, but the prompt is what tells you which files will be written |
+| `--help` | full option list |
+
+Trying it on a machine that already runs Rhino? Use `--prefix ~/rhino8-test` to
+leave your working prefix alone. Note that it still replaces your menu entry and
+the `.3dm` file association — back those up first.
+
+
+## Documentation
 
 | | |
 |---|---|
@@ -39,8 +80,16 @@ Rhino, always run:
 
 ```bash
 wine winecfg /v win10
-wine winecfg /v          # must answer: win10
+wine reg query "HKLM\Software\Microsoft\Windows NT\CurrentVersion" /v CurrentBuild
 ```
+
+The second command must print **19045**, the Windows 10 build number. 7601 would
+mean Windows 7. Do not use `wine winecfg /v` to check — verified at runtime on
+Wine 11.16, it prints nothing at all, and reads as a failure on a step that
+actually succeeded. `CurrentVersion` is no help either: it reads 6.3 in both
+cases, exactly as real Windows 10 does.
+
+The automated installer handles all of this for you.
 
 ## What does not work
 
